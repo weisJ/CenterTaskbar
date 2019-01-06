@@ -42,7 +42,7 @@ namespace CenterTaskbar
                 foreach (AutomationElement tray in trayList)
                 {
                     Taskbar taskbar = new Taskbar(tray);
-                    //taskbar.AddEventHandler(onUIAutomationEvent);
+                    //taskbar.AddEventHandler(onUIAutomationEvent); //Temporarily Disabled.
                     Taskbars.Add(new Taskbar(tray));
                 }
             }
