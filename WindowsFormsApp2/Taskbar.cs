@@ -223,7 +223,11 @@ namespace CenterTaskbar
         /// <summary>
         /// Reset the taskbar to its original position
         /// </summary>
-        public void Reset() => SetPosition(0, 0);
+        public void Reset()
+        {
+            ReloadTaskList();
+            SetPosition(0, 0);
+        }
 
         /// <summary>
         /// Set the position of the tasklist.

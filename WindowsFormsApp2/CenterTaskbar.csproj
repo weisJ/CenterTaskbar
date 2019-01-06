@@ -79,7 +79,7 @@
     <Compile Include="Resizer.cs" />
     <Compile Include="StartupHelper.cs" />
     <Compile Include="Taskbar.cs" />
-    <Compile Include="TrayResizer.cs" />
+    <Compile Include="TaskbarResizer.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
@@ -108,7 +108,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\Icon1.ico" />
-    <Content Include="TextTemplate.ico" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">

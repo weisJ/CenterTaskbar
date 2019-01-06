@@ -7,11 +7,28 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
+using System.Security.Permissions;
 
 namespace CenterTaskbar
 {
     static class Program
     {
+        private static CustomApplicationContext customAppContext;
+
+        [SecurityPermission(SecurityAction.LinkDemand, Flags = SecurityPermissionFlag.UnmanagedCode)]
+        private class TestMessageFilter : IMessageFilter
+        {
+            public bool PreFilterMessage(ref Message m)
+            {
+                if (m.Msg == /*WM_CLOSE*/ 0x10 && customAppContext != null)
+                {
+                    customAppContext.Exit(null, null);
+                    return true;
+                }
+                return false;
+            }
+        }
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -20,7 +37,10 @@ namespace CenterTaskbar
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new CustomApplicationContext(args));
+            Application.AddMessageFilter(new TestMessageFilter());
+
+            customAppContext = new CustomApplicationContext(args);
+            Application.Run(customAppContext);
         }
     }
 
@@ -31,6 +51,8 @@ namespace CenterTaskbar
         private readonly AutomationElement desktop = AutomationElement.RootElement;
 
         private readonly int activeFramerate = 60;
+
+        private bool running = false;
 
         private NotifyIcon trayIcon;
         private StartupHelper startupHelper;
@@ -91,13 +113,24 @@ namespace CenterTaskbar
         /// </summary>
         /// <param name="sender">Event sender</param>
         /// <param name="e">Event arguments</param>
-        void Exit(object sender, EventArgs e)
+        public void Exit(object sender, EventArgs e)
         {
             // Hide tray icon, otherwise it will remain shown until user mouses over it
             trayIcon.Visible = false;
             Stop();
+
             trayResizer.ResetTaskbars();
-            Application.Exit();
+
+            if (Application.MessageLoop)
+            {
+                // WinForms app
+                Application.Exit();
+            }
+            else
+            {
+                // Console app
+                Environment.Exit(1);
+            }
         }
 
         /// <summary>
@@ -117,6 +150,7 @@ namespace CenterTaskbar
         private void Start()
         {
             trayResizer.InitTaskbars(OnUIAutomationEvent);
+            running = true;
             Loop();
         }
 
@@ -125,9 +159,11 @@ namespace CenterTaskbar
         /// </summary>
         private void Stop()
         {
+            running = false;
             if (positionThread != null)
             {
-                positionThread.Abort();
+                positionThread.Join();
+                positionThread = null;
             }
         }
 
@@ -139,7 +175,7 @@ namespace CenterTaskbar
         /// <param name="e">Event Arguments</param>
         private void OnUIAutomationEvent(object src, AutomationEventArgs e)
         {
-            if (!positionThread.IsAlive)
+            if (positionThread != null && !positionThread.IsAlive)
             {
                 Loop();
             }
@@ -153,7 +189,7 @@ namespace CenterTaskbar
             positionThread = new Thread(() =>
             {
                 int runs = 0;
-                while (runs < (activeFramerate / 5))
+                while (runs < (activeFramerate / 5) && running)
                 {
                     runs += trayResizer.ResizeTaskbars();
                     Thread.Sleep(1000 / activeFramerate);
