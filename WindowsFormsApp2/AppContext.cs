@@ -1,10 +1,10 @@
 ﻿namespace CenterTaskbar
 {
-    using Microsoft.Win32;
     using System;
     using System.Diagnostics;
     using System.Windows.Automation;
     using System.Windows.Forms;
+    using Microsoft.Win32;
 
     /// <summary>
     /// The ApplicationContext of the program
@@ -25,6 +25,11 @@
         /// Current framerate of the system.
         /// </summary>
         private readonly int activeFramerate = 60;
+
+        /// <summary>
+        /// THreshold of Resolution to determine if big icons should be used.
+        /// </summary>
+        private int iconThreshold = Properties.Settings.Default.bigIconThreshold;
 
         /// <summary>
         /// System tray icon of the application.
@@ -65,7 +70,7 @@
             SetupTrayIcon();
 
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
-            if(Properties.Settings.Default.changeIcons)
+            if (Properties.Settings.Default.changeIcons)
             {
                 SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged_IconChange;
             }
@@ -178,10 +183,16 @@
                 Checked = startupHelper.IsApplicationInStatup()
             };
 
-            MenuItem changeIcons = new MenuItem("Automatically change icon size", ToggleChangeIcons)
+            MenuItem changeIcons = new MenuItem("Automatically change icon size");
+
+            changeIcons.MenuItems.Add(new MenuItem("Enabled", ToggleChangeIcons)
             {
                 Checked = Properties.Settings.Default.changeIcons
-            };
+            });
+
+            changeIcons.MenuItems.Add(
+                new MenuItem("Change resolution threshold (current = " + iconThreshold + ")",
+                ChangeResolutionThreshold));
 
             trayIcon = new NotifyIcon()
             {
@@ -190,6 +201,7 @@
                 ContextMenu = new ContextMenu(new MenuItem[]
                 {
                     new MenuItem("Scan for screens", Reload),
+                    new MenuItem("-"),
                     startup,
                     changeIcons,
                     new MenuItem("Exit", Exit)
@@ -199,20 +211,37 @@
         }
 
         /// <summary>
+        /// The ChangeResolutionThreshold
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/></param>
+        /// <param name="e">The e<see cref="EventArgs"/></param>
+        private void ChangeResolutionThreshold(object sender, EventArgs e)
+        {
+            Form1 dialog = new Form1(iconThreshold);
+            dialog.ShowDialog(null);
+            int newIconThreshold = Properties.Settings.Default.bigIconThreshold;
+            if (newIconThreshold != iconThreshold && Properties.Settings.Default.changeIcons)
+            {
+                SystemEvents_DisplaySettingsChanged_IconChange(null, null);
+            }
+        }
+
+        /// <summary>
         /// Toggle the changeIcons setting.
         /// </summary>
         /// <param name="sender">sender</param>
         /// <param name="e">event arguments</param>
         private void ToggleChangeIcons(object sender, EventArgs e)
         {
-            if(Properties.Settings.Default.changeIcons)
+            if (Properties.Settings.Default.changeIcons)
             {
                 Debug.Print("Turned off auto change icons");
                 Properties.Settings.Default.changeIcons = false;
                 (sender as MenuItem).Checked = false;
 
                 SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged_IconChange;
-            } else
+            }
+            else
             {
                 Debug.Print("Turned on auto change icons");
                 Properties.Settings.Default.changeIcons = true;

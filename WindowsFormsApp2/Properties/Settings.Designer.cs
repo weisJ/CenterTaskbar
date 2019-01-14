@@ -34,5 +34,17 @@ namespace CenterTaskbar.Properties {
                 this["changeIcons"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1920")]
+        public int bigIconThreshold {
+            get {
+                return ((int)(this["bigIconThreshold"]));
+            }
+            set {
+                this["bigIconThreshold"] = value;
+            }
+        }
     }
 }
