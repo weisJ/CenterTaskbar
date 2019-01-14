@@ -1,25 +1,34 @@
-﻿using Microsoft.Win32;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-
-namespace CenterTaskbar
+﻿namespace CenterTaskbar
 {
-    class StartupHelper
-    {
-        private readonly RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
-        private string appName;
-        private int framerate;
+    using Microsoft.Win32;
+    using System;
+    using System.Windows.Forms;
 
+    /// <summary>
+    /// Defines the <see cref="StartupHelper" />
+    /// </summary>
+    internal class StartupHelper
+    {
+        /// <summary>
+        /// Name of the application.
+        /// </summary>
+        private readonly string appName;
+
+        /// <summary>
+        /// Path of application.
+        /// </summary>
+        private readonly string appPath;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="StartupHelper"/> class.
+        /// </summary>
+        /// <param name="appName">The appName<see cref="string"/></param>
+        /// <param name="framerate">The framerate<see cref="int"/></param>
         public StartupHelper(string appName, int framerate)
         {
-            this.appName = appName;
-            this.framerate = framerate;
+            this.appName = appName + "(" + framerate + ")";
+            appPath = Application.ExecutablePath;
         }
-
 
         /// <summary>
         /// Toggles whether the application runs on startup.
@@ -30,13 +39,17 @@ namespace CenterTaskbar
         {
             if (IsApplicationInStatup())
             {
-                RemoveApplicationFromStartup();
-                (sender as MenuItem).Checked = false;
+                if (RemoveApplicationFromStartup())
+                {
+                    (sender as MenuItem).Checked = false;
+                }
             }
             else
             {
-                AddApplicationToStartup();
-                (sender as MenuItem).Checked = true;
+                if (AddApplicationToStartup())
+                {
+                    (sender as MenuItem).Checked = true;
+                }
             }
         }
 
@@ -46,31 +59,108 @@ namespace CenterTaskbar
         /// <returns>true if applications runs on startup</returns>
         public bool IsApplicationInStatup()
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            RegistryKey rk;
+            string value;
+
+            try
             {
-                if (key == null) return false;
+                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                value = rk.GetValue(appName).ToString();
+                return !(value == null || !value.ToLower().Equals(appPath.ToLower()));
+            }
+            catch (Exception)
+            {
+            }
 
-                object value = key.GetValue(appName);
-                if (value is String) return ((value as String).StartsWith("\"" + Application.ExecutablePath + "\""));
+            try
+            {
+                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                value = rk.GetValue(appName).ToString();
+                return !(value == null || !value.ToLower().Equals(appPath.ToLower()));
+            }
+            catch (Exception)
+            {
+            }
 
+            return false;
+        }
+
+        /// <summary>
+        /// Add application to startup
+        /// </summary>
+        /// <returns>true if application has been successfully removed</returns>
+        public bool AddApplicationToStartup()
+        {
+            RegistryKey rk;
+            try
+            {
+                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                rk.SetValue(appName, appPath);
+                return true;
+            }
+            catch (Exception)
+            {
+            }
+
+            try
+            {
+                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                rk.SetValue(appName, appPath);
+            }
+            catch (Exception)
+            {
                 return false;
             }
+            return true;
         }
 
-        public void AddApplicationToStartup()
+        /// <summary>
+        /// Remove the application from startup
+        /// </summary>
+        /// <returns>true if application has been successfully removed</returns>
+        public bool RemoveApplicationFromStartup()
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            RegistryKey rk;
+            try
             {
-                key.SetValue(appName, "\"" + Application.ExecutablePath + "\" " + framerate);
+                rk = Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                if (appPath == null)
+                {
+                    rk.DeleteValue(appName);
+                }
+                else
+                {
+                    if (rk.GetValue(appName).ToString().ToLower() == appPath.ToLower())
+                    {
+                        rk.DeleteValue(appName);
+                    }
+                }
+                return true;
             }
-        }
+            catch (Exception)
+            {
+            }
 
-        public void RemoveApplicationFromStartup()
-        {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true))
+            try
             {
-                key.DeleteValue(appName, false);
+                rk = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true);
+                if (appPath == null)
+                {
+                    rk.DeleteValue(appName);
+                }
+                else
+                {
+                    if (rk.GetValue(appName).ToString().ToLower() == appPath.ToLower())
+                    {
+                        rk.DeleteValue(appName);
+                    }
+                }
             }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

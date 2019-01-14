@@ -1,45 +1,111 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Automation;
-
-namespace CenterTaskbar
+﻿namespace CenterTaskbar
 {
-    class Taskbar
+    using System;
+    using System.Diagnostics;
+    using System.Windows;
+    using System.Windows.Automation;
+
+    /// <summary>
+    /// Defines the <see cref="Taskbar" />
+    /// </summary>
+    internal class Taskbar
     {
-        [DllImport("user32.dll", SetLastError = true)]
-        static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, int uFlags);
+        /// <summary>
+        /// NameAtribute of tasklist.
+        /// </summary>
+        private const string MSTaskListWClass = "MSTaskListWClass";
 
-
-        private const String MSTaskListWClass = "MSTaskListWClass";
+        /// <summary>
+        /// uFlag for SetWindowPos.
+        /// </summary>
         private const int SWP_NOSIZE = 0x0001;
+
+        /// <summary>
+        /// uFlag for SetWindowPos.
+        /// </summary>
         private const int SWP_NOZORDER = 0x0004;
+
+        /// <summary>
+        /// uFlag for SetWindowPos.
+        /// </summary>
         private const int SWP_SHOWWINDOW = 0x0040;
+
+        /// <summary>
+        /// uFlag for SetWindowPos.
+        /// </summary>
         private const int SWP_ASYNCWINDOWPOS = 0x4000;
 
+        /// <summary>
+        /// SystemTray object.
+        /// </summary>
         private readonly AutomationElement tray;
+
+        /// <summary>
+        /// tasklist object.
+        /// </summary>
         private AutomationElement tasks;
-        private AutomationElement firstElementBuffer, lastElementBuffer = null;
-        private double leftBoundaryBuffer, rightBOundaryBuffer;
 
-        public double X { get; private set; }
-        public double Y { get; private set; }
+        /// <summary>
+        /// taskBuffer for when it is currently null.
+        /// </summary>
+        private AutomationElement taskBuffer;
 
-        //Position of the lastElement in the taskList.
+        /// <summary>
+        /// beginBoundaryBuffer and endBoundaryBuffer
+        /// </summary>
+        private double beginBoundaryBuffer, endBoundaryBuffer;
+
+        /// <summary>
+        /// x and y position
+        /// </summary>
+        private double x, y;
+
+        /// <summary>
+        /// Gets or sets the X
+        /// </summary>
+        public double X
+        {
+            get => x;
+
+            set
+            {
+                x = value;
+                Debug.Print("New X: " + x);
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets the Y
+        /// </summary>
+        public double Y
+        {
+            get => y;
+
+            set
+            {
+                y = value;
+                Debug.Print("New X: " + y);
+            }
+        }
+
+        /// <summary>
+        /// Position of the lastElement in the taskList.
+        /// </summary>
         private double lastPosition;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Taskbar"/> class.
+        /// </summary>
+        /// <param name="tray">The tray<see cref="AutomationElement"/></param>
         public Taskbar(AutomationElement tray)
         {
             this.tray = tray;
-            this.lastPosition = 0;
+            lastPosition = 0;
             ReloadTaskList();
             GetLastTaskElement();
             GetFirstTaskElement();
+
+            Debug.Print("Taskbar: " + tray.ToString() + " | Tasklist: " + tasks.ToString());
         }
 
         /// <summary>
@@ -51,11 +117,14 @@ namespace CenterTaskbar
             cacheRequest.Add(AutomationElement.NameProperty);
             using (cacheRequest.Activate())
             {
-                this.tasks = tray.FindFirst(
+                tasks = tray.FindFirst(
                     TreeScope.Descendants,
                     new PropertyCondition(AutomationElement.ClassNameProperty, MSTaskListWClass));
+                if (tasks != null)
+                {
+                    taskBuffer = tasks;
+                }
             }
-            Debug.Print(tasks.ToString());
         }
 
         /// <summary>
@@ -84,7 +153,7 @@ namespace CenterTaskbar
                 ? lastElement.Current.BoundingRectangle.Left
                 : lastElement.Current.BoundingRectangle.Top;
 
-            if (AreSimilar(lastElementPos, lastPosition))
+            if (Tools.AreSimilar(lastElementPos, lastPosition))
             {
                 return false;
             }
@@ -95,14 +164,23 @@ namespace CenterTaskbar
         /// <summary>
         /// Calculate the size of the tray and the itemList
         /// </summary>
-        /// <returns>(itemListSize, traySize)</returns>
-        public (double itemlistSize, double traySize) GetSizes()
+        /// <returns>(itemListSize, traySize, numOfItems)</returns>
+        public (double itemlistSize, double traySize, int numOfItems) GetSizes()
         {
             AutomationElement lastElement = GetLastTaskElement();
             AutomationElement firstElement = GetFirstTaskElement();
             Debug.Assert(lastElement != null && firstElement != null, "Last/First Element in " + tray + " is null");
 
-            Rect trayBounds = tray.Cached.BoundingRectangle;
+            if (tasks == null)
+            {
+                tasks = taskBuffer;
+            }
+            if (taskBuffer == null)
+            {
+                throw new NullReferenceException();
+            }
+
+            Rect trayBounds = tray.Current.BoundingRectangle;
             Rect taskBounds = tasks.Current.BoundingRectangle;
 
             return CalculateSizes(firstElement, lastElement, trayBounds, taskBounds);
@@ -126,57 +204,63 @@ namespace CenterTaskbar
         /// <param name="lastElement">last element in tasks</param>
         /// <param name="trayBounds">bounds of tray</param>
         /// <param name="taskBounds">bounds of tasks</param>
-        /// <returns>(itemListSize, traySize)</returns>
-        private (double itemlistSize, double traySize) CalculateSizes(AutomationElement firstElement, AutomationElement lastElement, Rect trayBounds, Rect taskBounds)
+        /// <returns>(itemListSize, traySize, numOfItems)</returns>
+        private (double itemlistSize, double traySize, int numOfItems) CalculateSizes(AutomationElement firstElement, AutomationElement lastElement, Rect trayBounds, Rect taskBounds)
         {
             bool horizontal = IsHorizontal();
 
             double scale = horizontal
               ? lastElement.Current.BoundingRectangle.Height / trayBounds.Height
               : lastElement.Current.BoundingRectangle.Width / trayBounds.Width;
-            double itemlistSize = lastPosition - (horizontal
-                ? firstElement.Current.BoundingRectangle.Left
-                : firstElement.Current.BoundingRectangle.Top) / scale;
-            Debug.Assert(itemlistSize > 0);
+            double itemlistSize = (horizontal
+                ? lastElement.Current.BoundingRectangle.Left - firstElement.Current.BoundingRectangle.Left
+                : lastElement.Current.BoundingRectangle.Top - firstElement.Current.BoundingRectangle.Top) / scale;
+
+            Debug.Assert(itemlistSize >= 0);
 
             double traySize = horizontal
                 ? tray.Cached.BoundingRectangle.Width
                 : tray.Cached.BoundingRectangle.Height;
 
-            return (itemlistSize, traySize);
+            int numOfItems = (int)(itemlistSize / (horizontal
+                ? firstElement.Current.BoundingRectangle.Width
+                : firstElement.Current.BoundingRectangle.Height));
+
+            return (itemlistSize, traySize, numOfItems);
         }
 
         /// <summary>
-        /// Get the left Boundary position of the tasklist.
+        /// Get the beginning Boundary position of the tasklist.
+        /// If the tasklist is currently null an cached version is returned.
         /// </summary>
-        /// <returns>left boundary of tasklist</returns>
-        public double LeftListBoundary()
+        /// <returns>beginning boundary of tasklist</returns>
+        public double BeginListBoundary()
         {
-            leftBoundaryBuffer = SideBoundary(true);
-            return leftBoundaryBuffer;
+            beginBoundaryBuffer = SideBoundary(true);
+            return beginBoundaryBuffer;
         }
 
-
         /// <summary>
-        /// Get the right Boundary position of the tasklist.
+        /// Get the ending Boundary position of the tasklist.
+        /// If the tasklist is currently null an cached version is returned.
         /// </summary>
-        /// <returns>right boundary of tasklist</returns>
-        public double RightListBoundary()
+        /// <returns>ending boundary of tasklist</returns>
+        public double EndListBoundary()
         {
-            rightBOundaryBuffer = SideBoundary(false);
-            return rightBOundaryBuffer;
+            endBoundaryBuffer = SideBoundary(false);
+            return endBoundaryBuffer;
         }
 
         /// <summary>
         /// Get the boundary distance of specified side of the tasklist.
         /// </summary>
-        /// <param name="left">true = left side, false = right side</param>
+        /// <param name="begin">true = beginning, false = ending e.g. for horizontal taskbar: true = left side, false = right side</param>
         /// <returns></returns>
-        private double SideBoundary(bool left)
+        private double SideBoundary(bool begin)
         {
             if (tasks == null)
             {
-                return left ? leftBoundaryBuffer : rightBOundaryBuffer;
+                return begin ? beginBoundaryBuffer : endBoundaryBuffer;
             }
 
             bool horizontal = IsHorizontal();
@@ -185,13 +269,13 @@ namespace CenterTaskbar
             AutomationElement nextSibling = TreeWalker.ControlViewWalker.GetNextSibling(tasks);
             AutomationElement parent = TreeWalker.ControlViewWalker.GetParent(tasks);
 
-            if ((left && prevSibling != null))
+            if ((begin && prevSibling != null))
             {
-                adjustment = (horizontal 
+                adjustment = (horizontal
                     ? prevSibling.Current.BoundingRectangle.Right
                     : prevSibling.Current.BoundingRectangle.Bottom);
             }
-            else if (!left && nextSibling != null)
+            else if (!begin && nextSibling != null)
             {
                 adjustment = horizontal
                     ? nextSibling.Current.BoundingRectangle.Left
@@ -200,10 +284,10 @@ namespace CenterTaskbar
             else if (parent != null)
             {
                 adjustment = horizontal
-                    ? left
+                    ? begin
                         ? parent.Current.BoundingRectangle.Left
                         : parent.Current.BoundingRectangle.Right
-                    : left
+                    : begin
                         ? parent.Current.BoundingRectangle.Top
                         : parent.Current.BoundingRectangle.Bottom;
             }
@@ -225,8 +309,9 @@ namespace CenterTaskbar
         /// </summary>
         public void Reset()
         {
+            Debug.Print("Reseting Position");
             ReloadTaskList();
-            SetPosition(0, 0);
+            SetPosition(0, 0, false);
         }
 
         /// <summary>
@@ -236,58 +321,77 @@ namespace CenterTaskbar
         /// <param name="y">y Position</param>
         public void SetPosition(int x, int y)
         {
+            SetPosition(x, y, true);
+        }
+
+        /// <summary>
+        /// Set the position of the tasklist.
+        /// </summary>
+        /// <param name="xPos">x Position</param>
+        /// <param name="yPos">y Position</param>
+        /// <param name="updatePos">whether the new position should be saved to X and Y coordinates</param>
+        private void SetPosition(int xPos, int yPos, bool updatePos)
+        {
             if (tasks == null)
             {
                 return; //Nothing needs to be done.
             }
 
             IntPtr tasklistPtr = (IntPtr)tasks.Current.NativeWindowHandle;
-            SetWindowPos(tasklistPtr, IntPtr.Zero, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
+            NativeMethods.SetWindowPos(tasklistPtr, IntPtr.Zero, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE | SWP_ASYNCWINDOWPOS);
 
-            this.X = x;
-            this.Y = y;
+            Rect bounds = tasks.Current.BoundingRectangle;
+            Debug.Print("Now Position: " + bounds.X);
+
+            if (updatePos)
+            {
+                x = xPos;
+                y = yPos;
+            }
 
             AutomationElement lastElement = TreeWalker.ControlViewWalker.GetLastChild(tasks);
-            lastPosition = IsHorizontal()
-                ? lastElement.Current.BoundingRectangle.Left
-                : lastElement.Current.BoundingRectangle.Top;
+            if (lastElement != null)
+            {
+                lastPosition = IsHorizontal()
+                    ? lastElement.Current.BoundingRectangle.Left
+                    : lastElement.Current.BoundingRectangle.Top;
+            }
         }
 
+        /// <summary>
+        /// Returns the first Element in the tasklist.
+        /// If the tasklist is currently null an cached element is returned.
+        /// </summary>
+        /// <returns>the first element in tasklist</returns>
         private AutomationElement GetFirstTaskElement()
         {
             if (tasks == null)
             {
-                return firstElementBuffer;
+                if (taskBuffer == null)
+                {
+                    throw new NullReferenceException("tasks is null");
+                }
+                return TreeWalker.ContentViewWalker.GetFirstChild(taskBuffer);
             }
-            AutomationElement firstElement = TreeWalker.ControlViewWalker.GetFirstChild(tasks);
-            if (firstElement != null)
-            {
-                firstElementBuffer = firstElement;
-            }
-            return firstElementBuffer;
+            return TreeWalker.ContentViewWalker.GetFirstChild(tasks);
         }
 
+        /// <summary>
+        /// Returns the last Element in the tasklist.
+        /// If the tasklist is currently null an cached element is returned.
+        /// </summary>
+        /// <returns>the last element in tasklist</returns>
         private AutomationElement GetLastTaskElement()
         {
             if (tasks == null)
             {
-                return lastElementBuffer;
+                if (taskBuffer == null)
+                {
+                    throw new NullReferenceException("tasks is null");
+                }
+                return TreeWalker.ContentViewWalker.GetLastChild(taskBuffer);
             }
-            AutomationElement lastElement = TreeWalker.ControlViewWalker.GetLastChild(tasks);
-            if (lastElement != null)
-            {
-                lastElementBuffer = lastElement;
-            }
-            return lastElementBuffer;
+            return TreeWalker.ContentViewWalker.GetLastChild(tasks);
         }
-
-        /// <summary>
-        /// Checks whether two double values are approximaptly equal to accomodate floating point errors.
-        /// </summary>
-        /// <param name="a">first double</param>
-        /// <param name="b">second double</param>
-        /// <returns>true of the difference is in a margin of error.</returns>
-        private static bool AreSimilar(double a, double b) => Math.Abs(a - b) < 0.00001;
-
     }
 }
