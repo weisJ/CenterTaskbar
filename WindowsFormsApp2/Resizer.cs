@@ -18,12 +18,13 @@
         /// <returns>whether the taskbar had to be resized. If the resizing happened and performed without issue.</returns>
         public static bool Resize(Taskbar taskbar, int framerate, bool force)
         {
+            Debug.Print("Starting Resize");
             if (!taskbar.UpdateLastElementPos())
             {
-                //Size/location unchanged, sleeping
+                //size/location unchanged, sleeping
                 return true;
             }
-
+            Debug.Print("Updated Last Pos");
             (double itemListSize, double traySize, int numOfItems) = taskbar.GetSizes();
 
             if (Tools.AreSimilar(itemListSize, 0) && !force)
@@ -53,7 +54,7 @@
             }
 
             double beginBound = taskbar.BeginListBoundary();
-            if (targetPos <= beginBound)
+            if (targetPos < beginBound)
             {
                 // Prevent X position ending up beyond the normal left aligned position
                 Debug.WriteLine("Target is more left than left/top aligned default, left/top aligning (" + targetPos + " <= " + beginBound + ")");
@@ -101,48 +102,14 @@
         /// <param name="framerate">framerate of monitor</param>
         private static void Move(Taskbar taskbar, int position, double traySize, int framerate)
         {
-            double stepSize = 50;
             if (taskbar.IsHorizontal())
             {
-                //if (Math.Abs(position - taskbar.X) > traySize / 2)
-                //{
-                //    return;
-                //}
-                //double currentPos = taskbar.X;
-                //Debug.Print("Moving from " + currentPos + " to " + position + " with stepSize " + stepSize);
-
-                //int steps = (int)(Math.Abs(position - currentPos) / stepSize);
-                //if (position < currentPos)
-                //{
-                //    stepSize *= -1;
-                //}
-                //for (int i = 0; i < steps; i++)
-                //{
-                //    Debug.Print("Moving to: " + (int)(currentPos + i * stepSize));
-                //    taskbar.SetPosition((int)(currentPos + i * stepSize), 0);
-                //}
                 Debug.Print("Moving to: " + position);
                 taskbar.SetPosition(position, 0);
                 Debug.Print("Finished Moving");
             }
             else
             {
-                if (Math.Abs(position - taskbar.Y) > traySize / 2)
-                {
-                    return;
-                }
-                double currentPos = taskbar.Y;
-                Debug.Print("Moving from " + currentPos + " to " + position + " with stepSize " + stepSize);
-                int steps = (int)(Math.Abs(position - currentPos) / stepSize);
-                if (position < currentPos)
-                {
-                    stepSize *= -1;
-                }
-                for (int i = 0; i < steps; i++)
-                {
-                    Debug.Print("Moving to: " + (int)(currentPos + i * stepSize));
-                    taskbar.SetPosition(0, (int)(currentPos + i * stepSize));
-                }
                 Debug.Print("Moving to: " + position);
                 taskbar.SetPosition(0, position);
                 Debug.Print("Finished Moving");

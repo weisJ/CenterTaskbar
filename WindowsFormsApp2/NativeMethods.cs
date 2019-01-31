@@ -34,5 +34,8 @@
         [DllImport("User32.dll")]
         internal static extern bool SendNotifyMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam);
 
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+
     }
 }

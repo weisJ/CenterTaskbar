@@ -13,7 +13,7 @@
         /// <summary>
         /// Threshold for which resolution to decide whether to use large taskbar icons.
         /// </summary>
-        private const int BIG_TASKBAR_RES = 1920;
+        public static int BIG_TASKBAR_RES = Properties.Settings.Default.bigIconThreshold;
 
         /// <summary>
         /// Null pointer constant.

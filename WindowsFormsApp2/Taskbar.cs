@@ -113,16 +113,20 @@
         /// </summary>
         public void ReloadTaskList()
         {
-            CacheRequest cacheRequest = new CacheRequest();
-            cacheRequest.Add(AutomationElement.NameProperty);
-            using (cacheRequest.Activate())
+            if (tasks == null)
             {
-                tasks = tray.FindFirst(
-                    TreeScope.Descendants,
-                    new PropertyCondition(AutomationElement.ClassNameProperty, MSTaskListWClass));
-                if (tasks != null)
+                CacheRequest cacheRequest = new CacheRequest();
+                cacheRequest.Add(AutomationElement.NameProperty);
+                using (cacheRequest.Activate())
                 {
-                    taskBuffer = tasks;
+                    tasks = tray.FindFirst(
+                        TreeScope.Descendants,
+                        new PropertyCondition(AutomationElement.ClassNameProperty, MSTaskListWClass));
+                    if (tasks != null)
+                    {
+                        taskBuffer = tasks;
+                        //NativeMethods.SetParent((IntPtr)tasks.Current.NativeWindowHandle, (IntPtr)tray.Current.NativeWindowHandle);
+                    }
                 }
             }
         }
@@ -216,7 +220,10 @@
                 ? lastElement.Current.BoundingRectangle.Left - firstElement.Current.BoundingRectangle.Left
                 : lastElement.Current.BoundingRectangle.Top - firstElement.Current.BoundingRectangle.Top) / scale;
 
-            Debug.Assert(itemlistSize >= 0);
+            if(itemlistSize < 0)
+            {
+                throw new Exception("ItemlistSIze is < 0");
+            }
 
             double traySize = horizontal
                 ? tray.Cached.BoundingRectangle.Width

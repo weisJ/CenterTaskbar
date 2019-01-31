@@ -7,27 +7,27 @@
     /// <summary>
     /// Defines the <see cref="StartupHelper" />
     /// </summary>
-    internal class StartupHelper
+    internal static class StartupHelper
     {
         /// <summary>
         /// Name of the application.
         /// </summary>
-        private readonly string appName;
+        private static string appName;
 
         /// <summary>
         /// Path of application.
         /// </summary>
-        private readonly string appPath;
+        private static string appPath;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="StartupHelper"/> class.
         /// </summary>
         /// <param name="appName">The appName<see cref="string"/></param>
         /// <param name="framerate">The framerate<see cref="int"/></param>
-        public StartupHelper(string appName, int framerate)
+        public static void SetupStartupHelper(string appName, int framerate)
         {
-            this.appName = appName + "(" + framerate + ")";
-            appPath = Application.ExecutablePath;
+            StartupHelper.appName = appName + "(" + framerate + ")";
+            StartupHelper.appPath = Application.ExecutablePath;
         }
 
         /// <summary>
@@ -35,7 +35,7 @@
         /// </summary>
         /// <param name="sender">Sender of the Event</param>
         /// <param name="e">Event arguments</param>
-        public void ToggleStartup(object sender, EventArgs e)
+        public static void ToggleStartup(object sender, EventArgs e)
         {
             if (IsApplicationInStatup())
             {
@@ -57,7 +57,7 @@
         /// Returns whether the application is run on system startup
         /// </summary>
         /// <returns>true if applications runs on startup</returns>
-        public bool IsApplicationInStatup()
+        public static bool IsApplicationInStatup()
         {
             RegistryKey rk;
             string value;
@@ -89,7 +89,7 @@
         /// Add application to startup
         /// </summary>
         /// <returns>true if application has been successfully removed</returns>
-        public bool AddApplicationToStartup()
+        public static bool AddApplicationToStartup()
         {
             RegistryKey rk;
             try
@@ -118,7 +118,7 @@
         /// Remove the application from startup
         /// </summary>
         /// <returns>true if application has been successfully removed</returns>
-        public bool RemoveApplicationFromStartup()
+        public static bool RemoveApplicationFromStartup()
         {
             RegistryKey rk;
             try

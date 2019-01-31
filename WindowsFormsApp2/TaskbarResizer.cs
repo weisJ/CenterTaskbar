@@ -66,8 +66,8 @@
                 foreach (AutomationElement tray in trayList)
                 {
                     Taskbar taskbar = new Taskbar(tray);
-                    taskbar.AddEventHandler(onUIAutomationEvent);
-                    Taskbars.Add(new Taskbar(tray));
+                    //taskbar.AddEventHandler(onUIAutomationEvent);
+                    Taskbars.Add(taskbar);
                 }
             }
 
@@ -113,7 +113,9 @@
             int runs = 0;
             foreach (Taskbar taskbar in Taskbars)
             {
+                Debug.Print("Reloading Tasks");
                 taskbar.ReloadTaskList();
+                Debug.Print("Done");
 
                 if (Resizer.Resize(taskbar, framerate, force))
                 {

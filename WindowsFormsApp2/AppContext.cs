@@ -1,10 +1,11 @@
 ﻿namespace CenterTaskbar
 {
+    using Microsoft.Win32;
     using System;
     using System.Diagnostics;
+    using System.Threading;
     using System.Windows.Automation;
     using System.Windows.Forms;
-    using Microsoft.Win32;
 
     /// <summary>
     /// The ApplicationContext of the program
@@ -17,11 +18,6 @@
         public const string AppName = "CenterTaskbar";
 
         /// <summary>
-        /// Desktop reference.
-        /// </summary>
-        private readonly AutomationElement desktop = AutomationElement.RootElement;
-
-        /// <summary>
         /// Current framerate of the system.
         /// </summary>
         private readonly int activeFramerate = 60;
@@ -29,17 +25,12 @@
         /// <summary>
         /// THreshold of Resolution to determine if big icons should be used.
         /// </summary>
-        private int iconThreshold = Properties.Settings.Default.bigIconThreshold;
+        private readonly int iconThreshold = Properties.Settings.Default.bigIconThreshold;
 
         /// <summary>
         /// System tray icon of the application.
         /// </summary>
         private NotifyIcon trayIcon;
-
-        /// <summary>
-        /// HelperClass to add program to startup.
-        /// </summary>
-        private StartupHelper startupHelper;
 
         /// <summary>
         /// TrayResizer. Responsible for centering the taskbar icons.
@@ -65,11 +56,12 @@
                 }
             }
 
-            startupHelper = new StartupHelper(AppName, activeFramerate);
+            StartupHelper.SetupStartupHelper(AppName, activeFramerate);
             trayResizer = new TaskbarResizer();
             SetupTrayIcon();
 
             SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
+            SystemEvents.UserPreferenceChanged += SystemEvents_UserPreferenceChanged;
             if (Properties.Settings.Default.changeIcons)
             {
                 SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged_IconChange;
@@ -130,10 +122,13 @@
             Debug.Print("Starting");
             if (!trayResizer.IsInitialized)
             {
+                if (Properties.Settings.Default.changeIcons)
+                {
+                    IconChanger.SystemEvents_DisplaySettingsChanged(null, null);
+                }
                 trayResizer.InitTaskbars(OnUIAutomationEvent, activeFramerate);
+                trayResizer.ResizeTaskbars();
             }
-
-            trayResizer.ForceResizeTaskbars();
         }
 
         /// <summary>
@@ -155,8 +150,13 @@
         private void SystemEvents_UserPreferenceChanged(object sender, EventArgs e)
         {
             Debug.WriteLine("User Preference changed.");
-            Debug.Print("Category: " + (e as UserPreferenceChangedEventArgs).Category.ToString());
-            Reload(null, null);
+            UserPreferenceCategory category = (e as UserPreferenceChangedEventArgs).Category;
+            Debug.Print("Category: " + category.ToString());
+
+            if (category == UserPreferenceCategory.Desktop || category == UserPreferenceCategory.Icon)
+            {
+                Reload(null, null);
+            }
         }
 
         /// <summary>
@@ -178,9 +178,9 @@
         /// </summary>
         private void SetupTrayIcon()
         {
-            MenuItem startup = new MenuItem("Start with Windows", startupHelper.ToggleStartup)
+            MenuItem startup = new MenuItem("Start with Windows", StartupHelper.ToggleStartup)
             {
-                Checked = startupHelper.IsApplicationInStatup()
+                Checked = StartupHelper.IsApplicationInStatup()
             };
 
             MenuItem changeIcons = new MenuItem("Automatically change icon size");
@@ -220,6 +220,7 @@
             Form1 dialog = new Form1(iconThreshold);
             dialog.ShowDialog(null);
             int newIconThreshold = Properties.Settings.Default.bigIconThreshold;
+            IconChanger.BIG_TASKBAR_RES = newIconThreshold;
             if (newIconThreshold != iconThreshold && Properties.Settings.Default.changeIcons)
             {
                 SystemEvents_DisplaySettingsChanged_IconChange(null, null);
@@ -260,10 +261,10 @@
         /// <param name="e">Event Arguments</param>
         private void OnUIAutomationEvent(object src, AutomationEventArgs e)
         {
+            Debug.Print("Event happened");
             try
             {
-                trayResizer.ForceResizeTaskbars();
-                trayResizer.ForceResizeTaskbars();
+                trayResizer.ResizeTaskbars();
             }
             catch (Exception ex)
             {
