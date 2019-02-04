@@ -129,6 +129,10 @@
                 trayResizer.InitTaskbars(OnUIAutomationEvent, activeFramerate);
                 trayResizer.ResizeTaskbars();
             }
+            else
+            {
+                trayResizer.ResizeTaskbars();
+            }
         }
 
         /// <summary>
@@ -249,6 +253,7 @@
                 (sender as MenuItem).Checked = true;
 
                 SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged_IconChange;
+                SystemEvents_DisplaySettingsChanged_IconChange(null, null);
             }
             Properties.Settings.Default.Save();
         }
