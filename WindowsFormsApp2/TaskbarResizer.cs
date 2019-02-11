@@ -46,7 +46,7 @@
         /// </summary>
         /// <param name="onUIAutomationEvent">AutomationEvent to perform at change</param>
         /// <param name="framerate">framerate of monitor</param>
-        public void InitTaskbars(Action<object, AutomationEventArgs> onUIAutomationEvent, int framerate)
+        public void InitTaskbars(Action<object, AutomationEventArgs> onUIAutomationEvent,Action<object, EventArgs> reload, int framerate)
         {
             this.framerate = framerate;
             OrCondition isInTrayCondition = new OrCondition(
@@ -66,8 +66,9 @@
                 foreach (AutomationElement tray in trayList)
                 {
                     Taskbar taskbar = new Taskbar(tray);
-                    //taskbar.AddEventHandler(onUIAutomationEvent);
+                    taskbar.AddEventHandler((object o, AutomationEventArgs args) => MoveToLastPos());
                     Taskbars.Add(taskbar);
+                    //Automation.AddStructureChangedEventHandler(tray, TreeScope.Descendants, (object src, StructureChangedEventArgs e) => MoveToLastPos()); //Experiment
                 }
             }
 
@@ -137,6 +138,21 @@
             foreach (Taskbar taskbar in Taskbars)
             {
                 taskbar.Reset();
+            }
+        }
+
+        private void MoveToLastPos()
+        {
+            foreach (Taskbar bar in Taskbars)
+            {
+                if (bar.IsHorizontal())
+                {
+                    bar.SetPosition(bar.X, 0);
+                }
+                else
+                {
+                    bar.SetPosition(0, bar.Y);
+                }
             }
         }
     }

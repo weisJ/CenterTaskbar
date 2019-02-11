@@ -19,7 +19,7 @@
         public static bool Resize(Taskbar taskbar, int framerate, bool force)
         {
             Debug.Print("Starting Resize");
-            if (!taskbar.UpdateLastElementPos())
+            if (!taskbar.UpdateLastElementPos() && !force)
             {
                 //size/location unchanged, sleeping
                 return true;

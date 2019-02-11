@@ -3,7 +3,6 @@
     using Microsoft.Win32;
     using System;
     using System.Diagnostics;
-    using System.Threading;
     using System.Windows.Automation;
     using System.Windows.Forms;
 
@@ -16,6 +15,13 @@
         /// Name of the application
         /// </summary>
         public const string AppName = "CenterTaskbar";
+
+
+        private const uint EVENT_OBJECT_CREATE = 0x8000;
+        private const uint EVENT_OBJECT_DESTROY = 0x8001;
+        private const uint EVENT_OBJECT_CONTENTSCROLLED = 0x8015;
+        private const uint WINEVENT_SKIPOWNPROCESS = 0x0002;
+        private const uint WINEVENT_INCONTEXT = 0x0004;
 
         /// <summary>
         /// Current framerate of the system.
@@ -66,6 +72,12 @@
             {
                 SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged_IconChange;
             }
+
+            //NativeMethods.WinEventDelegate procDelegate = new NativeMethods.WinEventDelegate(RefreshCallback);
+
+            //Debug.Print("Hook " + NativeMethods.SetWinEventHook(0x00000001, 0x7FFFFFFF,
+            //                              IntPtr.Zero, procDelegate, 0, 0,
+            //                              WINEVENT_SKIPOWNPROCESS).ToString());
 
             Start();
         }
@@ -126,7 +138,7 @@
                 {
                     IconChanger.SystemEvents_DisplaySettingsChanged(null, null);
                 }
-                trayResizer.InitTaskbars(OnUIAutomationEvent, activeFramerate);
+                trayResizer.InitTaskbars(OnUIAutomationEvent, Reload, activeFramerate);
                 trayResizer.ResizeTaskbars();
             }
             else
@@ -205,6 +217,7 @@
                 ContextMenu = new ContextMenu(new MenuItem[]
                 {
                     new MenuItem("Scan for screens", Reload),
+                    new MenuItem("Refresh", (object sender, EventArgs e) => trayResizer.ForceResizeTaskbars()),
                     new MenuItem("-"),
                     startup,
                     changeIcons,
@@ -283,6 +296,36 @@
                     Debug.Print("Exception: " + ex2.Message);
                 }
             }
+        }
+
+        /// <summary>
+        /// Refreshes trays as Event callback.
+        /// </summary>
+        /// <param name="hWinEventHook">The hWinEventHook<see cref="IntPtr"/></param>
+        /// <param name="eventType">The eventType<see cref="uint"/></param>
+        /// <param name="hwnd">The hwnd<see cref="IntPtr"/></param>
+        /// <param name="idObject">The idObject<see cref="int"/></param>
+        /// <param name="idChild">The idChild<see cref="int"/></param>
+        /// <param name="dwEventThread">The dwEventThread<see cref="uint"/></param>
+        /// <param name="dwmsEventTime">The dwmsEventTime<see cref="uint"/></param>
+        private static void RefreshCallback(IntPtr hWinEventHook,
+                                     uint eventType,
+                                     IntPtr hwnd,
+                                     int idObject,
+                                     int idChild,
+                                     uint dwEventThread,
+                                     uint dwmsEventTime)
+        {
+            if (idObject != 0 || idChild != 0)
+            {
+                return;
+            }
+            if (eventType == EVENT_OBJECT_CREATE || eventType == EVENT_OBJECT_DESTROY)
+            {
+                //Reload(null, null);
+                //Debug.Print("Object created or destroyed----------" + hwnd.ToInt32());
+            }
+            //Console.WriteLine("Text of hwnd changed {0:x8}", hwnd.ToInt32());
         }
     }
 }

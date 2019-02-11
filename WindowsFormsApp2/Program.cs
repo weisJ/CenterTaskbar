@@ -38,7 +38,7 @@
                 {
                     return false;
                 }
-
+  
                 switch (m.Msg)
                 {
                     case WM_CLOSE:

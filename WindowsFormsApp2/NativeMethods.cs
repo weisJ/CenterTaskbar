@@ -12,8 +12,7 @@
         /// SetWindowPosition
         /// </summary>
         /// <param name="hWnd">Handle to the window.<see cref="IntPtr"/></param>
-        /// <param name="hWndInsertAfter">Handle to the window to precede the positioned window in the z-order.
-        /// This parameter must be a window handle or one of the following values.<see cref="IntPtr"/></param>
+        /// <param name="hWndInsertAfter">The hWndInsertAfter<see cref="IntPtr"/></param>
         /// <param name="X">Specifies the new position of the left side of the window, in client coordinates.<see cref="int"/></param>
         /// <param name="Y">Specifies the new position of the top of the window, in client coordinates.<see cref="int"/></param>
         /// <param name="cx">Specifies the new width of the window, in pixels.<see cref="int"/></param>
@@ -34,8 +33,38 @@
         [DllImport("User32.dll")]
         internal static extern bool SendNotifyMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam);
 
-        [DllImport("user32.dll")]
-        internal static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
+        /// <summary>
+        /// The WinEventDelegate
+        /// </summary>
+        /// <param name="hWinEventHook">The hWinEventHook<see cref="IntPtr"/></param>
+        /// <param name="eventType">The eventType<see cref="uint"/></param>
+        /// <param name="hwnd">The hwnd<see cref="IntPtr"/></param>
+        /// <param name="idObject">The idObject<see cref="int"/></param>
+        /// <param name="idChild">The idChild<see cref="int"/></param>
+        /// <param name="dwEventThread">The dwEventThread<see cref="uint"/></param>
+        /// <param name="dwmsEventTime">The dwmsEventTime<see cref="uint"/></param>
+        internal delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
 
+        /// <summary>
+        /// The SetWinEventHook
+        /// </summary>
+        /// <param name="eventMin">The eventMin<see cref="uint"/></param>
+        /// <param name="eventMax">The eventMax<see cref="uint"/></param>
+        /// <param name="hmodWinEventProc">The hmodWinEventProc<see cref="IntPtr"/></param>
+        /// <param name="lpfnWinEventProc">The lpfnWinEventProc<see cref="WinEventDelegate"/></param>
+        /// <param name="idProcess">The idProcess<see cref="uint"/></param>
+        /// <param name="idThread">The idThread<see cref="uint"/></param>
+        /// <param name="dwFlags">The dwFlags<see cref="uint"/></param>
+        /// <returns>The <see cref="IntPtr"/></returns>
+        [DllImport("user32.dll")]
+        internal static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
+
+        /// <summary>
+        /// The UnhookWinEvent
+        /// </summary>
+        /// <param name="hWinEventHook">The hWinEventHook<see cref="IntPtr"/></param>
+        /// <returns>The <see cref="int"/></returns>
+        [DllImport("user32.dll", SetLastError = true)]
+        internal static extern int UnhookWinEvent(IntPtr hWinEventHook);
     }
 }

@@ -1,6 +1,7 @@
 ﻿namespace CenterTaskbar
 {
     using System;
+    using System.Collections.Generic;
     using System.Diagnostics;
     using System.Windows;
     using System.Windows.Automation;
@@ -58,12 +59,12 @@
         /// <summary>
         /// x and y position
         /// </summary>
-        private double x, y;
+        private int x, y;
 
         /// <summary>
         /// Gets or sets the X
         /// </summary>
-        public double X
+        public int X
         {
             get => x;
 
@@ -77,7 +78,7 @@
         /// <summary>
         /// Gets or sets the Y
         /// </summary>
-        public double Y
+        public int Y
         {
             get => y;
 
@@ -91,7 +92,11 @@
         /// <summary>
         /// Position of the lastElement in the taskList.
         /// </summary>
-        private double lastPosition;
+        private double LastPosition;
+
+
+
+        private readonly HashSet<Action<object, AutomationEventArgs>> Handlers;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Taskbar"/> class.
@@ -100,7 +105,8 @@
         public Taskbar(AutomationElement tray)
         {
             this.tray = tray;
-            lastPosition = 0;
+            Handlers = new HashSet<Action<object, AutomationEventArgs>>();
+            LastPosition = 0;
             ReloadTaskList();
             GetLastTaskElement();
             GetFirstTaskElement();
@@ -125,6 +131,15 @@
                     if (tasks != null)
                     {
                         taskBuffer = tasks;
+                        foreach (var handler in Handlers)
+                        {
+                            Automation.AddAutomationPropertyChangedEventHandler(
+                                tasks,
+                                TreeScope.Element,
+                                new AutomationPropertyChangedEventHandler(handler),
+                                AutomationElement.BoundingRectangleProperty);
+                        }
+
                         //NativeMethods.SetParent((IntPtr)tasks.Current.NativeWindowHandle, (IntPtr)tray.Current.NativeWindowHandle);
                     }
                 }
@@ -137,6 +152,7 @@
         /// <param name="onUIAutomationEvent">The Handler to add</param>
         public void AddEventHandler(Action<object, AutomationEventArgs> onUIAutomationEvent)
         {
+            Handlers.Add(onUIAutomationEvent);
             Automation.AddAutomationPropertyChangedEventHandler(
                 tasks,
                 TreeScope.Element,
@@ -157,11 +173,11 @@
                 ? lastElement.Current.BoundingRectangle.Left
                 : lastElement.Current.BoundingRectangle.Top;
 
-            if (Tools.AreSimilar(lastElementPos, lastPosition))
+            if (Tools.AreSimilar(lastElementPos, LastPosition))
             {
                 return false;
             }
-            lastPosition = lastElementPos;
+            LastPosition = lastElementPos;
             return true;
         }
 
@@ -359,7 +375,7 @@
             AutomationElement lastElement = TreeWalker.ControlViewWalker.GetLastChild(tasks);
             if (lastElement != null)
             {
-                lastPosition = IsHorizontal()
+                LastPosition = IsHorizontal()
                     ? lastElement.Current.BoundingRectangle.Left
                     : lastElement.Current.BoundingRectangle.Top;
             }
