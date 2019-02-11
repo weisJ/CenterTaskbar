@@ -139,8 +139,6 @@
                                 new AutomationPropertyChangedEventHandler(handler),
                                 AutomationElement.BoundingRectangleProperty);
                         }
-
-                        //NativeMethods.SetParent((IntPtr)tasks.Current.NativeWindowHandle, (IntPtr)tray.Current.NativeWindowHandle);
                     }
                 }
             }
