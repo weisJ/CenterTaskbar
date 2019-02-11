@@ -46,7 +46,7 @@
         /// </summary>
         /// <param name="onUIAutomationEvent">AutomationEvent to perform at change</param>
         /// <param name="framerate">framerate of monitor</param>
-        public void InitTaskbars(Action<object, AutomationEventArgs> onUIAutomationEvent,Action<object, EventArgs> reload, int framerate)
+        public void InitTaskbars(Action<object, AutomationEventArgs> onUIAutomationEvent, int framerate)
         {
             this.framerate = framerate;
             OrCondition isInTrayCondition = new OrCondition(
@@ -68,7 +68,6 @@
                     Taskbar taskbar = new Taskbar(tray);
                     taskbar.AddEventHandler((object o, AutomationEventArgs args) => MoveToLastPos());
                     Taskbars.Add(taskbar);
-                    //Automation.AddStructureChangedEventHandler(tray, TreeScope.Descendants, (object src, StructureChangedEventArgs e) => MoveToLastPos()); //Experiment
                 }
             }
 

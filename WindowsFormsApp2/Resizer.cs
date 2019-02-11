@@ -64,7 +64,7 @@
 
             targetPos = NewPosition(targetPos, beginBound);
 
-            double delta = Math.Abs(targetPos - (taskbar.IsHorizontal() ? taskbar.X : taskbar.Y));
+            double delta = Math.Abs(targetPos - (taskbar.IsHorizontal() ? taskbarB.X : taskbar.Y));
             if (delta <= 1 && !force)
             {
                 // Already positioned within margin of error, avoid the unneeded MoveWindow call

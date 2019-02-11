@@ -32,39 +32,5 @@
         /// <returns>whether message was successfully sent.</returns>
         [DllImport("User32.dll")]
         internal static extern bool SendNotifyMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, string lParam);
-
-        /// <summary>
-        /// The WinEventDelegate
-        /// </summary>
-        /// <param name="hWinEventHook">The hWinEventHook<see cref="IntPtr"/></param>
-        /// <param name="eventType">The eventType<see cref="uint"/></param>
-        /// <param name="hwnd">The hwnd<see cref="IntPtr"/></param>
-        /// <param name="idObject">The idObject<see cref="int"/></param>
-        /// <param name="idChild">The idChild<see cref="int"/></param>
-        /// <param name="dwEventThread">The dwEventThread<see cref="uint"/></param>
-        /// <param name="dwmsEventTime">The dwmsEventTime<see cref="uint"/></param>
-        internal delegate void WinEventDelegate(IntPtr hWinEventHook, uint eventType, IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime);
-
-        /// <summary>
-        /// The SetWinEventHook
-        /// </summary>
-        /// <param name="eventMin">The eventMin<see cref="uint"/></param>
-        /// <param name="eventMax">The eventMax<see cref="uint"/></param>
-        /// <param name="hmodWinEventProc">The hmodWinEventProc<see cref="IntPtr"/></param>
-        /// <param name="lpfnWinEventProc">The lpfnWinEventProc<see cref="WinEventDelegate"/></param>
-        /// <param name="idProcess">The idProcess<see cref="uint"/></param>
-        /// <param name="idThread">The idThread<see cref="uint"/></param>
-        /// <param name="dwFlags">The dwFlags<see cref="uint"/></param>
-        /// <returns>The <see cref="IntPtr"/></returns>
-        [DllImport("user32.dll")]
-        internal static extern IntPtr SetWinEventHook(uint eventMin, uint eventMax, IntPtr hmodWinEventProc, WinEventDelegate lpfnWinEventProc, uint idProcess, uint idThread, uint dwFlags);
-
-        /// <summary>
-        /// The UnhookWinEvent
-        /// </summary>
-        /// <param name="hWinEventHook">The hWinEventHook<see cref="IntPtr"/></param>
-        /// <returns>The <see cref="int"/></returns>
-        [DllImport("user32.dll", SetLastError = true)]
-        internal static extern int UnhookWinEvent(IntPtr hWinEventHook);
     }
 }
